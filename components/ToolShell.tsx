@@ -31,7 +31,7 @@ export default function ToolShell({ meta, children }: { meta: ToolMeta; children
       <div className="mt-6 flex items-center justify-between gap-3 text-sm">
         {prev ? (
           <Link
-            href={`/tools/${prev.id}`}
+            href={`/${prev.id}`}
             className="max-w-[45%] truncate rounded-lg border border-zinc-200 px-3 py-2 text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-indigo-800 dark:hover:text-indigo-400"
           >
             ← {prev.name}
@@ -41,7 +41,7 @@ export default function ToolShell({ meta, children }: { meta: ToolMeta; children
         )}
         {next ? (
           <Link
-            href={`/tools/${next.id}`}
+            href={`/${next.id}`}
             className="max-w-[45%] truncate rounded-lg border border-zinc-200 px-3 py-2 text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-600 dark:border-zinc-800 dark:text-zinc-400 dark:hover:border-indigo-800 dark:hover:text-indigo-400"
           >
             {next.name} →

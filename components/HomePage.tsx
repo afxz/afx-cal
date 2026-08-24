@@ -77,7 +77,7 @@ export default function HomePage() {
 function ToolCard({ id, name, desc, icon }: { id: string; name: string; desc: string; icon: string }) {
   return (
     <Link
-      href={`/tools/${id}`}
+      href={`/${id}`}
       className="group flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-indigo-800"
     >
       <span className="mt-0.5 text-xl">{icon}</span>

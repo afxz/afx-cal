@@ -75,7 +75,7 @@ pnpm typecheck     # TypeScript 类型检查
 │   ├── layout.tsx          # 根布局（侧边栏 + 主题 + Toast）
 │   ├── page.tsx            # 主页
 │   ├── globals.css         # Tailwind v4 全局样式
-│   └── tools/[id]/page.tsx # 工具路由（generateStaticParams + metadata）
+│   └── [id]/page.tsx        # 工具路由（generateStaticParams + metadata）
 ├── components/
 │   ├── Sidebar.tsx         # 分组导航侧边栏（移动端抽屉）
 │   ├── HomePage.tsx        # 主页导航（分类卡片 + 搜索）
@@ -103,7 +103,7 @@ pnpm typecheck     # TypeScript 类型检查
 
 ## 技术要点
 
-- **Next.js 16 App Router**：每个工具独立路径 `/tools/[id]`，`generateStaticParams` 全量静态预渲染
+- **Next.js 16 App Router**：每个工具独立根级路径 `/[id]`（如 `/base64`），`generateStaticParams` 全量静态预渲染
 - **Tailwind CSS 4**：`@custom-variant dark` 实现深色模式（跟随系统 / 手动切换）
 - **纯函数分层**：`lib/utils.ts` 等无 DOM 依赖，可用 Node 直接做单元测试
 - 依赖库：CryptoJS（哈希 / HMAC / AES）、js-beautify、sql-formatter、qrcode

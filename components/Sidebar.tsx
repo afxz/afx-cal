@@ -12,7 +12,7 @@ export default function Sidebar() {
 
   useEffect(() => setOpen(false), [pathname]);
 
-  const activeTool = pathname.startsWith("/tools/") ? pathname.split("/")[2] : null;
+  const activeTool = pathname === "/" ? null : pathname.slice(1);
 
   const nav = (
     <nav className="flex-1 overflow-y-auto px-3 py-4">
@@ -27,7 +27,7 @@ export default function Sidebar() {
               {tools.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/tools/${t.id}`}
+                  href={`/${t.id}`}
                   className={
                     "block truncate rounded-md px-2 py-1.5 text-[13px] transition " +
                     (activeTool === t.id
