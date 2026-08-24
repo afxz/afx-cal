@@ -55,6 +55,14 @@
 - 利息计算（单利 / 复利 / 定投）
 - 个税估算（年度综合所得，2024 税率表）
 
+## 路由结构
+
+所有对外访问的路由都从根级 `/` 开始：
+
+- `/` — 主页导航（分类卡片 + 搜索）
+- `/base64`、`/json`、`/aes` … — 每个工具一个独立根级路径（共 38 个）
+- 未知路径返回 404（`dynamicParams = false`，仅预渲染存在的工具）
+
 ## 快速开始
 
 项目使用 [pnpm](https://pnpm.io/) 管理依赖：
@@ -75,7 +83,7 @@ pnpm typecheck     # TypeScript 类型检查
 │   ├── layout.tsx          # 根布局（侧边栏 + 主题 + Toast）
 │   ├── page.tsx            # 主页
 │   ├── globals.css         # Tailwind v4 全局样式
-│   └── [id]/page.tsx        # 工具路由（generateStaticParams + metadata）
+│   └── [id]/page.tsx         # 工具路由（generateStaticParams + metadata）
 ├── components/
 │   ├── Sidebar.tsx         # 分组导航侧边栏（移动端抽屉）
 │   ├── HomePage.tsx        # 主页导航（分类卡片 + 搜索）
@@ -107,6 +115,20 @@ pnpm typecheck     # TypeScript 类型检查
 - **Tailwind CSS 4**：`@custom-variant dark` 实现深色模式（跟随系统 / 手动切换）
 - **纯函数分层**：`lib/utils.ts` 等无 DOM 依赖，可用 Node 直接做单元测试
 - 依赖库：CryptoJS（哈希 / HMAC / AES）、js-beautify、sql-formatter、qrcode
+
+## 部署
+
+支持 [Vercel](https://vercel.com/) 及任意 Node 静态托管：
+
+```bash
+# Vercel（推荐）
+vercel
+
+# 本地生产构建
+pnpm build && pnpm start
+```
+
+`next.config.ts` 中 `output: standalone` 会在 Vercel 环境（`VERCEL` 环境变量）下自动禁用，由 Vercel 原生处理产物，其余环境保留 standalone 输出。
 
 > 注意：加密类工具仅供开发调试使用，全部运算在浏览器本地完成，不适用于安全敏感场景。
 
