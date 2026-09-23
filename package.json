@@ -9,16 +9,17 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "audit:online": "pnpm audit --registry=https://registry.npmjs.org",
     "test": "node test/run-tests.mts"
   },
   "dependencies": {
     "crypto-js": "^4.2.0",
-    "js-beautify": "1.15.4",
-    "next": "16.3.2",
+    "js-beautify": "^2.0.3",
+    "next": "16.3.6",
     "qrcode": "^1.5.4",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "sql-formatter": "^15.8.2"
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sql-formatter": "^15.9.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
@@ -26,8 +27,8 @@
     "@types/js-beautify": "1.14.3",
     "@types/node": "^24.0.0",
     "@types/qrcode": "^1.5.6",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3"
   }
