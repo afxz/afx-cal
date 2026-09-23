@@ -53,11 +53,11 @@ export default function ProCalcTool() {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-[35fr_35fr_15fr_15fr]">
         <Field label="操作数 A">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[70fr_30fr] gap-2 ">
             <Input type="text" value={a} onChange={(e) => setA(e.target.value)} className="font-mono" spellCheck={false} />
-            <select className={selectCls + " shrink-0"} value={aBase} onChange={(e) => setABase(e.target.value)}>
+            <select className={selectCls + " w-full"} value={aBase} onChange={(e) => setABase(e.target.value)}>
               {BASES.map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
@@ -65,9 +65,9 @@ export default function ProCalcTool() {
           </div>
         </Field>
         <Field label="操作数 B">
-          <div className="flex gap-2">
+          <div className="grid grid-cols-[70fr_30fr] gap-2">
             <Input type="text" value={b} onChange={(e) => setB(e.target.value)} className="font-mono" spellCheck={false} disabled={op === "NOT" || op === "NEG"} />
-            <select className={selectCls + " shrink-0"} value={bBase} onChange={(e) => setBBase(e.target.value)}>
+            <select className={selectCls + " w-full"} value={bBase} onChange={(e) => setBBase(e.target.value)}>
               {BASES.map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}

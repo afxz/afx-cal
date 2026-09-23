@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { TextArea, ErrorBox, selectCls, Field, btnGhost } from "@/components/ui";
+import { TextArea, Input, ErrorBox, selectCls, Field, btnGhost } from "@/components/ui";
 import { toast } from "@/lib/toast";
 
 const EC_LEVELS = [
@@ -74,12 +74,12 @@ export default function QrcodeTool() {
             </select>
           </Field>
           <Field label="像素宽度">
-            <input
+            <Input
               type="number"
               min={128}
               max={1024}
               step={16}
-              className="w-28 rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+              className="w-28"
               value={width}
               onChange={(e) => setWidth(e.target.value)}
             />

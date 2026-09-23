@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { selectCls, Field, btnGhost } from "@/components/ui";
+import { selectCls, Input, Field, btnGhost } from "@/components/ui";
 import { getTimeZones, formatInZone, zoneOffsetMinutes, offsetLabel } from "@/lib/utils";
 
 const WORLD_CLOCKS: { zone: string; city: string }[] = [
@@ -45,12 +45,7 @@ export default function TzTool() {
       <div className="space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <Field label="日期时间（按本地时区输入）">
-            <input
-              type="datetime-local"
-              value={dt}
-              onChange={(e) => setDt(e.target.value)}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            />
+            <Input type="datetime-local" value={dt} onChange={(e) => setDt(e.target.value)} />
           </Field>
           <button type="button" className={btnGhost} onClick={useNow}>
             🕐 用当前时间

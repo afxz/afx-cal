@@ -51,8 +51,8 @@ export function Field({
   );
 }
 
-export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={inputCls} {...props} />;
+export function Input({ className = "", ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
+  return <input className={inputCls + (className ? " " + className : "")} {...props} />;
 }
 
 export function TextArea({

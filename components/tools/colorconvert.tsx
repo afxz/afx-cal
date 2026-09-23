@@ -113,11 +113,11 @@ export default function ColorTool() {
               {(["R", "G", "B"] as const).map((ch, i) => (
                 <label key={ch} className="block">
                   <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">{ch}</span>
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     max={255}
-                    className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
+                    className="font-mono"
                     value={rgb[i]}
                     onChange={(e) => {
                       const vals = [...rgb];
@@ -131,15 +131,15 @@ export default function ColorTool() {
             <div className="mt-3 grid grid-cols-3 gap-3">
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">H（0-360）</span>
-                <input type="number" min={0} max={360} className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" value={Math.round(h * 10) / 10} onChange={(e) => setHsl(parseFloat(e.target.value) || 0, s, l)} />
+                <Input type="number" min={0} max={360} className="font-mono" value={Math.round(h * 10) / 10} onChange={(e) => setHsl(parseFloat(e.target.value) || 0, s, l)} />
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">S %</span>
-                <input type="number" min={0} max={100} className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" value={Math.round(s * 10) / 10} onChange={(e) => setHsl(h, parseFloat(e.target.value) || 0, l)} />
+                <Input type="number" min={0} max={100} className="font-mono" value={Math.round(s * 10) / 10} onChange={(e) => setHsl(h, parseFloat(e.target.value) || 0, l)} />
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">L %</span>
-                <input type="number" min={0} max={100} className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 font-mono text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100" value={Math.round(l * 10) / 10} onChange={(e) => setHsl(h, s, parseFloat(e.target.value) || 0)} />
+                <Input type="number" min={0} max={100} className="font-mono" value={Math.round(l * 10) / 10} onChange={(e) => setHsl(h, s, parseFloat(e.target.value) || 0)} />
               </label>
             </div>
           </div>
