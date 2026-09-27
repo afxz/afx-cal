@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:standalone": "node scripts/build-standalone.mjs",
     "start": "next start",
+    "start:standalone": "node .next/standalone/server.js",
     "typecheck": "tsc --noEmit",
     "audit:online": "pnpm audit --registry=https://registry.npmjs.org",
     "test": "node test/run-tests.mts"
@@ -25,11 +27,11 @@
     "@tailwindcss/postcss": "^4.3.3",
     "@types/crypto-js": "^4.2.2",
     "@types/js-beautify": "1.14.3",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.3",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^7.0.2"
   }
 }

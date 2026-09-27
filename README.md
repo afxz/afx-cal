@@ -74,6 +74,7 @@ pnpm build         # 生产构建（全部页面静态预渲染）
 pnpm start         # 生产服务
 pnpm test          # 纯逻辑单元测试（Node 原生 TS 运行）
 pnpm typecheck     # TypeScript 类型检查
+pnpm run audit:online  # 依赖安全审计（走官方 registry）
 ```
 
 ## 目录结构
@@ -99,6 +100,8 @@ pnpm typecheck     # TypeScript 类型检查
 │   ├── utils.ts            # 纯函数库（编码、进制、日期、金融、BMI…）
 │   ├── units.ts            # 单位换算表
 │   └── xml.ts              # XML 格式化器
+├── scripts/
+│   └── build-standalone.mjs # standalone 产物构建（自动补全静态资源）
 └── test/run-tests.mts      # 单元测试（56 用例）
 ```
 
@@ -118,17 +121,20 @@ pnpm typecheck     # TypeScript 类型检查
 
 ## 部署
 
-支持 [Vercel](https://vercel.com/) 及任意 Node 静态托管：
+支持 [Vercel](https://vercel.com/) 及任意 Node 托管：
 
 ```bash
-# Vercel（推荐）
+# Vercel（推荐）—— 由 Vercel 自动处理构建产物
 vercel
 
-# 本地生产构建
+# 自托管：常规产物
 pnpm build && pnpm start
+
+# 自托管：standalone 精简产物（Docker 等，会自动补齐静态资源）
+pnpm build:standalone && pnpm start:standalone
 ```
 
-`next.config.ts` 中 `output: standalone` 会在 Vercel 环境（`VERCEL` 环境变量）下自动禁用，由 Vercel 原生处理产物，其余环境保留 standalone 输出。
+`next.config.ts` 默认生成常规产物（`next start` 官方支持）；仅当 `NEXT_OUTPUT=standalone` 时生成 standalone 产物，此时应使用 `node .next/standalone/server.js` 启动（该组合下 `next start` 不受支持并会告警）。
 
 > 注意：加密类工具仅供开发调试使用，全部运算在浏览器本地完成，不适用于安全敏感场景。
 
