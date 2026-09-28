@@ -1,43 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import CryptoJS from "crypto-js";
 import { TextArea, ResultBox, selectCls, Field, Input } from "@/components/ui";
+import { hmacText, type HashAlgo } from "@/lib/crypto";
+import { bytesToBase64, bytesToBase64Url, bytesToHex } from "@/lib/utils";
 
-const ALGOS = [
+const ALGOS: Array<[HashAlgo, string]> = [
   ["MD5", "HMAC-MD5"],
   ["SHA1", "HMAC-SHA1"],
   ["SHA256", "HMAC-SHA256"],
   ["SHA384", "HMAC-SHA384"],
   ["SHA512", "HMAC-SHA512"],
-] as const;
-
-const HMAC_FNS: Record<string, (msg: string, key: string) => CryptoJS.lib.WordArray> = {
-  MD5: CryptoJS.HmacMD5,
-  SHA1: CryptoJS.HmacSHA1,
-  SHA256: CryptoJS.HmacSHA256,
-  SHA384: CryptoJS.HmacSHA384,
-  SHA512: CryptoJS.HmacSHA512,
-};
+];
 
 export default function HmacTool() {
   const [input, setInput] = useState("");
   const [key, setKey] = useState("");
-  const [algo, setAlgo] = useState<(typeof ALGOS)[number][0]>("SHA256");
+  const [algo, setAlgo] = useState<HashAlgo>("SHA256");
   const [enc, setEnc] = useState("hex");
 
   const compute = () => {
-    const wa = HMAC_FNS[algo](input, key);
-    if (enc === "base64") return CryptoJS.enc.Base64.stringify(wa);
-    if (enc === "base64url") return CryptoJS.enc.Base64.stringify(wa).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-    return wa.toString(CryptoJS.enc.Hex);
+    const bytes = hmacText(algo, key, input);
+    if (enc === "base64") return bytesToBase64(bytes);
+    if (enc === "base64url") return bytesToBase64Url(bytes);
+    return bytesToHex(bytes);
   };
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
         <Field label="算法">
-          <select className={selectCls + " w-full"} value={algo} onChange={(e) => setAlgo(e.target.value as never)}>
+          <select className={selectCls + " w-full"} value={algo} onChange={(e) => setAlgo(e.target.value as HashAlgo)}>
             {ALGOS.map(([v, label]) => (
               <option key={v} value={v}>
                 {label}

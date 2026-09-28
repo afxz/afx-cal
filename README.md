@@ -20,7 +20,7 @@
 ### 🔐 加密哈希
 - MD5、SHA-1 / 256 / 384 / 512（Hex / Base64 / URL-safe 输出）
 - HMAC-MD5 / HMAC-SHA 系列
-- AES 加解密（CBC / ECB / CTR；口令模式为 OpenSSL 格式，或 Base64 / Hex 原始密钥）
+- AES 加解密（CBC / ECB / CTR；口令模式为 OpenSSL 格式，可与 `openssl enc -md md5` 互操作，或 Base64 / Hex 原始密钥）
 
 ### 🛠️ 开发辅助
 - JWT 解码（含 HS256 / 384 / 512 签名校验）
@@ -84,7 +84,7 @@ pnpm run audit:online  # 依赖安全审计（走官方 registry）
 │   ├── layout.tsx          # 根布局（侧边栏 + 主题 + Toast）
 │   ├── page.tsx            # 主页
 │   ├── globals.css         # Tailwind v4 全局样式
-│   └── [id]/page.tsx         # 工具路由（generateStaticParams + metadata）
+│   └── [id]/page.tsx       # 工具路由（generateStaticParams + metadata）
 ├── components/
 │   ├── Sidebar.tsx         # 分组导航侧边栏（移动端抽屉）
 │   ├── HomePage.tsx        # 主页导航（分类卡片 + 搜索）
@@ -97,6 +97,7 @@ pnpm run audit:online  # 依赖安全审计（走官方 registry）
 ├── lib/
 │   ├── meta.ts             # 工具注册元数据（分类、描述、关键词）
 │   ├── registry.tsx        # 工具组件注册表
+│   ├── toast.tsx           # Toast 通知（轻量事件总线）
 │   ├── utils.ts            # 纯函数库（编码、进制、日期、金融、BMI…）
 │   ├── units.ts            # 单位换算表
 │   └── xml.ts              # XML 格式化器
@@ -107,9 +108,9 @@ pnpm run audit:online  # 依赖安全审计（走官方 registry）
 
 ## 技术栈
 
-- **Next.js 16.3**（App Router，Turbopack 默认构建）+ **React 19.2**
+- **Next.js 16.3**（App Router，Turbopack 默认构建）+ **React 19.3**
 - **Tailwind CSS 4**（`@custom-variant dark` 深色模式）
-- **TypeScript 5.9**（strict）
+- **TypeScript 7.0**（strict，原生编译器）
 - **pnpm** 管理依赖
 
 ## 技术要点
@@ -117,7 +118,7 @@ pnpm run audit:online  # 依赖安全审计（走官方 registry）
 - **Next.js 16 App Router**：每个工具独立根级路径 `/[id]`（如 `/base64`），`generateStaticParams` 全量静态预渲染
 - **Tailwind CSS 4**：`@custom-variant dark` 实现深色模式（跟随系统 / 手动切换）
 - **纯函数分层**：`lib/utils.ts` 等无 DOM 依赖，可用 Node 直接做单元测试
-- 依赖库：CryptoJS（哈希 / HMAC / AES）、js-beautify、sql-formatter、qrcode
+- 依赖库：@noble/hashes + @noble/ciphers（哈希 / HMAC / AES，经安全审计、零依赖）、js-beautify、sql-formatter、qrcode
 
 ## 部署
 

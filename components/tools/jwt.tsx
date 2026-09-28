@@ -1,9 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import CryptoJS from "crypto-js";
 import { TextArea, Input, KeyValue, ErrorBox, selectCls, Field, isErr } from "@/components/ui";
-import { base64UrlToBytes, bytesToUtf8, relativeTime } from "@/lib/utils";
+import { hmacBytes, type HashAlgo } from "@/lib/crypto";
+import { base64UrlToBytes, bytesToBase64Url, bytesToUtf8, relativeTime, utf8ToBytes } from "@/lib/utils";
+
+const HS_ALGOS: Record<string, HashAlgo> = { HS256: "SHA256", HS384: "SHA384", HS512: "SHA512" };
 
 function b64urlDecodeJson(s: string): unknown | null {
   const bytes = base64UrlToBytes(s);
@@ -46,18 +48,11 @@ export default function JwtTool() {
     if (!result || isErr(result) || !secret) return null;
     const { parts, h } = result;
     const alg = String(h["alg"] ?? "");
-    const map: Record<string, (msg: string, key: string) => CryptoJS.lib.WordArray> = {
-      HS256: CryptoJS.HmacSHA256,
-      HS384: CryptoJS.HmacSHA384,
-      HS512: CryptoJS.HmacSHA512,
-    };
-    const fn = map[alg];
-    if (!fn) return { ok: null, msg: `算法 ${alg} 不支持签名校验` };
-    const expect = fn(`${parts[0]}.${parts[1]}`, secret)
-      .toString(CryptoJS.enc.Base64)
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
+    const hashAlgo = HS_ALGOS[alg];
+    if (!hashAlgo) return { ok: null, msg: `算法 ${alg} 不支持签名校验` };
+    const expect = bytesToBase64Url(
+      hmacBytes(hashAlgo, utf8ToBytes(secret), utf8ToBytes(`${parts[0]}.${parts[1]}`)),
+    );
     return { ok: expect === parts[2], msg: expect === parts[2] ? "签名有效 ✓" : "签名无效 ✗（密钥不匹配或内容被篡改）" };
   }, [result, secret]);
 

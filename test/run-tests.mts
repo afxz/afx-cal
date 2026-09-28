@@ -3,7 +3,7 @@
  *   node test/run-tests.mts
  */
 import assert from "node:assert/strict";
-import CryptoJS from "crypto-js";
+import { readFileSync } from "node:fs";
 import {
   utf8ToBytes, bytesToUtf8, bytesToHex, hexToBytes, bytesToBase64, base64ToBytes,
   bytesToBase64Url, base64UrlToBytes,
@@ -18,6 +18,10 @@ import {
   equalPayment, equalPrincipal, amortSchedule, incomeTax,
   compoundInterest, annuityFV, bmiCalc,
 } from "../lib/utils.ts";
+import {
+  aesEncryptWithKey, aesDecryptWithKey, aesOpenSslDecrypt, aesOpenSslEncrypt,
+  evpBytesToKey, hashText, hmacText, pkcs7Pad, pkcs7Unpad,
+} from "../lib/crypto.ts";
 import { UNIT_SYSTEMS } from "../lib/units.ts";
 import { formatXml } from "../lib/xml.ts";
 
@@ -35,16 +39,21 @@ function test(name: string, fn: () => void) {
   }
 }
 
-console.log("== 编码 ==");
-test("MD5('') = d41d8c…", () => assert.equal(CryptoJS.MD5("").toString(), "d41d8cd98f00b204e9800998ecf8427e"));
-test("MD5('abc') = 900150…", () => assert.equal(CryptoJS.MD5("abc").toString(), "900150983cd24fb0d6963f7d28e17f72"));
-test("SHA-256('') 已知向量", () => assert.equal(CryptoJS.SHA256("").toString(), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
-test("SHA-256('abc') 已知向量", () => assert.equal(CryptoJS.SHA256("abc").toString(), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+console.log("== 哈希 / HMAC（@noble/hashes）==");
+test("MD5('') = d41d8c…", () => assert.equal(bytesToHex(hashText("MD5", "")), "d41d8cd98f00b204e9800998ecf8427e"));
+test("MD5('abc') = 900150…", () => assert.equal(bytesToHex(hashText("MD5", "abc")), "900150983cd24fb0d6963f7d28e17f72"));
+test("SHA-1('abc') 已知向量", () => assert.equal(bytesToHex(hashText("SHA1", "abc")), "a9993e364706816aba3e25717850c26c9cd0d89d"));
+test("SHA-256('') 已知向量", () => assert.equal(bytesToHex(hashText("SHA256", "")), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+test("SHA-256('abc') 已知向量", () => assert.equal(bytesToHex(hashText("SHA256", "abc")), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+test("SHA-384('abc') 已知向量", () => assert.equal(bytesToHex(hashText("SHA384", "abc")), "cb00753f45a35e8bb5a03d699ac65007272c32ab0eded1631a8b605a43ff5bed8086072ba1e7cc2358baeca134c825a7"));
+test("SHA-512('abc') 已知向量", () => assert.equal(bytesToHex(hashText("SHA512", "abc")), "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"));
 test("HMAC-SHA256 已知向量 (RFC 4231)", () =>
   assert.equal(
-    CryptoJS.HmacSHA256("what do ya want for nothing?", "Jefe").toString(),
+    bytesToHex(hmacText("SHA256", "Jefe", "what do ya want for nothing?")),
     "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843",
   ));
+test("HMAC-MD5 已知向量 (RFC 2202)", () =>
+  assert.equal(bytesToHex(hmacText("MD5", "Jefe", "what do ya want for nothing?")), "750c783e6ab0b503eaa86e310a5db738"));
 test("UTF-8 → Hex 往返", () => {
   const h = bytesToHex(utf8ToBytes("你好，世界！"));
   assert.equal(h, "e4bda0e5a5bdefbc8ce4b896e7958cefbc81");
@@ -106,6 +115,58 @@ test("maskToBits / toSigned", () => {
   assert.equal(toSigned(0x7fn, 8).toString(), "127");
 });
 test("非法进制拒绝", () => assert.equal(baseToBigInt("g", 16), null));
+
+console.log("== AES（@noble，兼容 crypto-js / OpenSSL 旧产物）==");
+const FX = JSON.parse(readFileSync("test/aes-compat.json", "utf8"));
+const fxKey = hexToBytes(FX.keyHex)!;
+const fxIv = hexToBytes(FX.ivHex)!;
+const fxSalt = hexToBytes(FX.saltHex)!;
+const fxPlain = utf8ToBytes(FX.plain);
+
+test("口令模式密文与 crypto-js 一致（Base64）", () =>
+  assert.equal(bytesToBase64(aesOpenSslEncrypt(FX.plain, FX.password, fxSalt)), FX.passphraseOpenSSLBase64));
+test("口令模式密文与 crypto-js 一致（Hex）", () =>
+  assert.equal(bytesToHex(aesOpenSslEncrypt(FX.plain, FX.password, fxSalt)), FX.passphraseOpenSSLHex));
+test("可解密旧 OpenSSL 产物（Base64 / Hex）", () => {
+  assert.equal(bytesToUtf8(aesOpenSslDecrypt(base64ToBytes(FX.passphraseOpenSSLBase64)!, FX.password)), FX.plain);
+  assert.equal(bytesToUtf8(aesOpenSslDecrypt(hexToBytes(FX.passphraseOpenSSLHex)!, FX.password)), FX.plain);
+});
+test("错误口令会因 PKCS#7 校验而抛错", () =>
+  assert.throws(() => aesOpenSslDecrypt(base64ToBytes(FX.passphraseOpenSSLBase64)!, "wrong-password")));
+test("缺少 Salted__ 头的载荷被拒绝", () => assert.throws(() => aesOpenSslDecrypt(base64ToBytes(FX.cbcBase64)!, FX.password)));
+test("CBC 密文与 crypto-js 一致", () =>
+  assert.equal(bytesToHex(aesEncryptWithKey(fxPlain, fxKey, "CBC", fxIv)), FX.cbcHex));
+test("ECB 密文与 crypto-js 一致", () =>
+  assert.equal(bytesToHex(aesEncryptWithKey(fxPlain, fxKey, "ECB")), FX.ecbHex));
+test("CTR 密文与 crypto-js 一致（兼容其 PKCS#7 填充）", () =>
+  assert.equal(bytesToHex(aesEncryptWithKey(fxPlain, fxKey, "CTR", fxIv)), FX.ctrHex));
+test("原始密钥模式三模式往返", () => {
+  for (const m of ["CBC", "ECB", "CTR"] as const) {
+    const iv = m === "ECB" ? undefined : fxIv;
+    const sealed = aesEncryptWithKey(fxPlain, fxKey, m, iv);
+    assert.equal(bytesToUtf8(aesDecryptWithKey(sealed, fxKey, m, iv)), FX.plain);
+  }
+});
+test("EVP_BytesToKey 派生与 OpenSSL -md md5 一致", () => {
+  // 期望值来自：openssl enc -aes-256-cbc -md md5 -S 0011223344556677 -pass pass:secret-key -P
+  const { key, iv } = evpBytesToKey(FX.password, fxSalt);
+  assert.equal(bytesToHex(key), "f86802bb82e4f674b41fa5dc558039945bc4336625c8739037349439c26ee937");
+  assert.equal(bytesToHex(iv), "b4b91a8a0cd85c3a057037f7843d2152");
+});
+test("PKCS#7 补位/去位（整块也补一整块）", () => {
+  assert.equal(pkcs7Pad(new Uint8Array([1, 2, 3])).length, 16);
+  assert.equal(pkcs7Pad(new Uint8Array(16)).length, 32);
+  assert.deepEqual(Array.from(pkcs7Unpad(pkcs7Pad(new Uint8Array([1, 2, 3])))), [1, 2, 3]);
+  assert.throws(() => pkcs7Unpad(new Uint8Array([1, 2, 3])));
+});
+test("JWT HS256 签名（jwt.io 标准示例）", () => {
+  const signingInput =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ";
+  assert.equal(
+    bytesToBase64Url(hmacText("SHA256", "your-256-bit-secret", signingInput)),
+    "SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c",
+  );
+});
 
 console.log("== 日期 ==");
 const D = (s: string) => parseDateLocal(s)!;

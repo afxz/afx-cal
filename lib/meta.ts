@@ -44,7 +44,7 @@ export const TOOLS: ToolMeta[] = [
   // 加密哈希
   { id: "hash", category: "crypto", name: "MD5 / SHA", desc: "MD5、SHA-1/256/384/512 哈希计算", keywords: "md5 sha1 sha256 sha512 hash 哈希 摘要" },
   { id: "hmac", category: "crypto", name: "HMAC", desc: "HMAC-MD5 / HMAC-SHA 消息认证码", keywords: "hmac md5 sha 签名 mac" },
-  { id: "aes", category: "crypto", name: "AES 加解密", desc: "AES 加解密（CBC / ECB / CTR），口令或密钥模式", keywords: "aes encrypt decrypt 加密 解密 crypto-js" },
+  { id: "aes", category: "crypto", name: "AES 加解密", desc: "AES 加解密（CBC / ECB / CTR），口令或密钥模式", keywords: "aes encrypt decrypt 加密 解密 openssl" },
   // 开发辅助
   { id: "jwt", category: "dev", name: "JWT 解码", desc: "JWT 解码，支持 HS256/384/512 签名校验", keywords: "jwt token 解码 decode verify 校验" },
   { id: "regex", category: "dev", name: "正则测试", desc: "正则表达式实时匹配、高亮与捕获组查看", keywords: "regex 正则 匹配 测试" },

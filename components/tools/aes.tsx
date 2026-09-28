@@ -1,30 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import CryptoJS from "crypto-js";
-import { TextArea, ResultBox, ErrorBox, selectCls, Field, Input, btnGhost } from "@/components/ui";
-import { hexToBytes, bytesToHex } from "@/lib/utils";
+import { TextArea, ErrorBox, selectCls, Field, Input, btnGhost } from "@/components/ui";
+import {
+  aesDecryptWithKey,
+  aesEncryptWithKey,
+  aesOpenSslDecrypt,
+  aesOpenSslEncrypt,
+  type AesMode,
+} from "@/lib/crypto";
+import { base64ToBytes, bytesToBase64, bytesToHex, bytesToUtf8, hexToBytes, utf8ToBytes } from "@/lib/utils";
 
 type KeyKind = "pass" | "b64" | "hex";
 
-const SALTED_PREFIX = "53616c7465645f5f"; // "Salted__"
-
-function bytesOf(wa: CryptoJS.lib.WordArray): Uint8Array {
-  const hex = wa.toString(CryptoJS.enc.Hex);
-  const out = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < out.length; i++) out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-  return out;
-}
-
-function randomHexBytes(n: number): string {
-  const b = crypto.getRandomValues(new Uint8Array(n));
-  return bytesToHex(b);
-}
-
-type AesCfg = NonNullable<Parameters<typeof CryptoJS.AES.encrypt>[2]>;
-
 export default function AesTool() {
-  const [mode, setMode] = useState("CBC");
+  const [mode, setMode] = useState<AesMode>("CBC");
   const [keyKind, setKeyKind] = useState<KeyKind>("pass");
   const [key, setKey] = useState("");
   const [iv, setIv] = useState("");
@@ -33,55 +23,46 @@ export default function AesTool() {
   const [encFmt, setEncFmt] = useState("base64");
   const [error, setError] = useState("");
 
-  const modeObj = mode === "ECB" ? CryptoJS.mode.ECB : mode === "CTR" ? CryptoJS.mode.CTR : CryptoJS.mode.CBC;
-
-  const parseKey = (): CryptoJS.lib.WordArray => {
-    if (keyKind === "b64") {
-      const wa = CryptoJS.enc.Base64.parse(key.trim());
-      if (!wa.sigBytes) throw new Error("无效的 Base64 密钥");
-      return wa;
+  const parseKey = (): Uint8Array => {
+    const bytes = keyKind === "b64" ? base64ToBytes(key.trim()) : hexToBytes(key.trim());
+    if (!bytes || bytes.length === 0) {
+      throw new Error(keyKind === "b64" ? "无效的 Base64 密钥" : "无效的 Hex 密钥");
     }
-    if (keyKind === "hex") {
-      const bytes = hexToBytes(key.trim());
-      if (!bytes) throw new Error("无效的 Hex 密钥");
-      return CryptoJS.enc.Hex.parse(bytesToHex(bytes));
+    if (bytes.length !== 16 && bytes.length !== 24 && bytes.length !== 32) {
+      throw new Error(
+        "AES 密钥长度需为 16 / 24 / 32 字节（AES-128 / 192 / 256），当前 " + bytes.length + " 字节",
+      );
     }
-    throw new Error("未选择密钥类型");
+    return bytes;
   };
 
-  const parseIv = (): CryptoJS.lib.WordArray => {
+  const parseIv = (): Uint8Array => {
     const bytes = hexToBytes(iv.trim());
     if (!bytes || bytes.length !== 16) throw new Error("IV 需为 16 字节（32 位 Hex 字符）");
-    return CryptoJS.enc.Hex.parse(bytesToHex(bytes));
+    return bytes;
+  };
+
+  /** 密文解析：Hex 或 Base64 自动识别 */
+  const parseSealed = (text: string): Uint8Array => {
+    const isHex = /^[0-9a-fA-F]+$/.test(text) && text.length % 2 === 0;
+    const bytes = isHex ? hexToBytes(text) : base64ToBytes(text);
+    if (!bytes || bytes.length === 0) throw new Error("密文格式无效（应为 Hex 或 Base64）");
+    return bytes;
   };
 
   const encrypt = () => {
     try {
       if (!plain) throw new Error("请输入明文");
-      let cp: CryptoJS.lib.CipherParams;
+      let payload: Uint8Array;
       if (keyKind === "pass") {
         if (!key) throw new Error("请输入口令");
-        cp = CryptoJS.AES.encrypt(plain, key);
+        payload = aesOpenSslEncrypt(plain, key);
       } else {
         if (!key) throw new Error("请输入密钥");
-        const cfg: AesCfg = { mode: modeObj, padding: CryptoJS.pad.Pkcs7 };
-        if (mode !== "ECB") cfg.iv = parseIv();
-        const keyWa = parseKey();
-        const kb = keyWa.sigBytes;
-        if (kb !== 16 && kb !== 24 && kb !== 32) {
-          throw new Error("AES 密钥长度需为 16 / 24 / 32 字节（AES-128 / 192 / 256），当前 " + kb + " 字节");
-        }
-        cp = CryptoJS.AES.encrypt(plain, keyWa, cfg);
+        const ivBytes = mode === "ECB" ? undefined : parseIv();
+        payload = aesEncryptWithKey(utf8ToBytes(plain), parseKey(), mode, ivBytes);
       }
-      const out =
-        keyKind === "pass"
-          ? encFmt === "hex"
-            ? SALTED_PREFIX + bytesToHex(bytesOf(cp.salt!)) + cp.ciphertext.toString(CryptoJS.enc.Hex)
-            : cp.toString()
-          : encFmt === "hex"
-            ? cp.ciphertext.toString(CryptoJS.enc.Hex)
-            : cp.toString();
-      setCipher(out);
+      setCipher(encFmt === "hex" ? bytesToHex(payload) : bytesToBase64(payload));
       setError("");
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -90,49 +71,32 @@ export default function AesTool() {
 
   const decrypt = () => {
     try {
-      if (!cipher.trim()) throw new Error("请输入密文");
-      const t = cipher.trim();
+      const text = cipher.trim();
+      if (!text) throw new Error("请输入密文");
+      const sealed = parseSealed(text);
       let result: string;
       if (keyKind === "pass") {
         if (!key) throw new Error("请输入口令");
-        const isHex = /^[0-9a-fA-F]+$/.test(t) && t.length % 2 === 0;
-        let params: CryptoJS.lib.CipherParams;
-        if (isHex) {
-          const bytes = hexToBytes(t)!;
-          if (bytes.length <= 16 || bytesToHex(bytes.slice(0, 8)).toLowerCase() !== SALTED_PREFIX) {
-            throw new Error("口令模式需要 OpenSSL 格式密文（含 Salt 头，可用「加密」得到）");
-          }
-          params = CryptoJS.lib.CipherParams.create({
-            ciphertext: CryptoJS.enc.Hex.parse(bytesToHex(bytes.slice(16))),
-            salt: CryptoJS.enc.Hex.parse(bytesToHex(bytes.slice(8, 16))),
-          });
-        } else {
-          if (!t.startsWith("Salted__")) {
-            throw new Error("口令模式需要 OpenSSL 格式密文（含 Salt 头）");
-          }
-          params = CryptoJS.lib.CipherParams.create({ ciphertext: CryptoJS.enc.Base64.parse(t.slice(8)) });
-        }
-        result = CryptoJS.AES.decrypt(params, key, { mode: CryptoJS.mode.CBC, padding: CryptoJS.pad.Pkcs7 }).toString(CryptoJS.enc.Utf8);
+        result = bytesToUtf8(aesOpenSslDecrypt(sealed, key));
       } else {
-        const isHex = /^[0-9a-fA-F]+$/.test(t) && t.length % 2 === 0;
-        const cfg: AesCfg = { mode: modeObj, padding: CryptoJS.pad.Pkcs7 };
-        if (mode !== "ECB") cfg.iv = parseIv();
-        const wa = isHex ? CryptoJS.enc.Hex.parse(t) : CryptoJS.enc.Base64.parse(t);
-        if (!wa.sigBytes) throw new Error("无效的密文");
-        result = CryptoJS.AES.decrypt(CryptoJS.lib.CipherParams.create({ ciphertext: wa }), parseKey(), cfg).toString(CryptoJS.enc.Utf8);
+        const ivBytes = mode === "ECB" ? undefined : parseIv();
+        result = bytesToUtf8(aesDecryptWithKey(sealed, parseKey(), mode, ivBytes));
       }
       setPlain(result);
-      setError(result ? "" : "解密结果为空，请检查密钥 / IV / 模式");
+      setError("");
     } catch (e) {
+      setPlain("");
       setError(e instanceof Error ? e.message : String(e));
     }
   };
+
+  const randomHex = (n: number) => bytesToHex(crypto.getRandomValues(new Uint8Array(n)));
 
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Field label="模式">
-          <select className={selectCls + " w-full"} value={mode} onChange={(e) => setMode(e.target.value)}>
+          <select className={selectCls + " w-full"} value={mode} onChange={(e) => setMode(e.target.value as AesMode)}>
             <option value="CBC">CBC</option>
             <option value="ECB">ECB</option>
             <option value="CTR">CTR</option>
@@ -144,7 +108,7 @@ export default function AesTool() {
             value={keyKind}
             onChange={(e) => setKeyKind(e.target.value as KeyKind)}
           >
-            <option value="pass">口令（PBKDF2 派生，AES-256）</option>
+            <option value="pass">口令（EVP_BytesToKey，AES-256）</option>
             <option value="b64">Base64 密钥</option>
             <option value="hex">Hex 密钥</option>
           </select>
@@ -159,7 +123,7 @@ export default function AesTool() {
           <Field label="IV（16 字节 Hex）">
             <div className="flex gap-2">
               <Input type="text" value={iv} onChange={(e) => setIv(e.target.value)} placeholder="32 位 Hex" />
-              <button type="button" className={btnGhost + " shrink-0"} onClick={() => setIv(randomHexBytes(16))}>
+              <button type="button" className={btnGhost + " shrink-0"} onClick={() => setIv(randomHex(16))}>
                 随机
               </button>
             </div>
@@ -181,8 +145,8 @@ export default function AesTool() {
               type="button"
               className={btnGhost + " shrink-0"}
               onClick={() => {
-                const b = crypto.getRandomValues(new Uint8Array(16));
-                setKey(keyKind === "hex" ? bytesToHex(b) : CryptoJS.enc.Base64.stringify(CryptoJS.enc.Hex.parse(bytesToHex(b))));
+                const bytes = crypto.getRandomValues(new Uint8Array(16));
+                setKey(keyKind === "hex" ? bytesToHex(bytes) : bytesToBase64(bytes));
               }}
             >
               随机
@@ -218,8 +182,9 @@ export default function AesTool() {
       </div>
       <ErrorBox msg={error} />
       <p className="text-xs leading-relaxed text-zinc-400 dark:text-zinc-500">
-        说明：口令模式使用 CryptoJS 的 OpenSSL 格式（密文自带随机 Salt，输出为 Base64 或带 Salt 头的 Hex）。
-        全部运算在浏览器本地完成，仅供开发测试，勿用于安全敏感场景。
+        说明：口令模式为标准 OpenSSL 格式（EVP_BytesToKey + CBC + PKCS#7，密文自带随机 Salt，输出为 Base64
+        或带 Salt 头的 Hex），可与 `openssl enc -aes-256-cbc -md md5` 互操作。全部运算在浏览器本地完成，
+        仅供开发测试，勿用于安全敏感场景。
       </p>
     </div>
   );

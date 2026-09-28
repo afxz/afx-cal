@@ -1,0 +1,14 @@
+{
+  "_note": "AES 互操作基准（固定 salt/key/iv），用于验证 @noble 实现与 crypto-js 4.2.0 旧产物字节级兼容。passphraseOpenSSLHex 的密文部分亦与 `printf 'hello 中文 🎉' | openssl enc -aes-256-cbc -md md5 -S 0011223344556677 -pass pass:secret-key -base64 -A` 的输出一致（OpenSSL 在显式指定 -S 时不输出 Salted__ 头）。",
+  "plain": "hello 中文 🎉",
+  "password": "secret-key",
+  "saltHex": "0011223344556677",
+  "keyHex": "000102030405060708090a0b0c0d0e0f",
+  "ivHex": "101112131415161718191a1b1c1d1e1f",
+  "passphraseOpenSSLBase64": "U2FsdGVkX18AESIzRFVmd9AZi2IXopRiTGDtChMJXn5RJT1sBkCbsEwyXMD+D7VS",
+  "passphraseOpenSSLHex": "53616c7465645f5f0011223344556677d0198b6217a294624c60ed0a13095e7e51253d6c06409bb04c325cc0fe0fb552",
+  "cbcHex": "804ed954fe07369c53a30dc901aad5acc93190b29f87c4efe4cee2566d268916",
+  "cbcBase64": "gE7ZVP4HNpxTow3JAarVrMkxkLKfh8Tv5M7iVm0miRY=",
+  "ecbHex": "348ff1dd4b213ebedcd5b1953c44daf5527e2ed8f3028914c02e1d0cded500d6",
+  "ctrHex": "6f9b83188ef5e7d63de87896ae640d1d1bcdca0bd7038d0d4976726d84f6d107"
+}
